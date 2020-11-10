@@ -1,0 +1,95 @@
+By default flast search for templates in folder called templates
+
+Flask use jinja to embed non html to html file and process the entire file to replace template strings with strings and render html file to user
+
+Explain MVC
+The controller layer would handle three parts of this: accept user input, tell the model to create a todo item, and direct how the view should update.
+
+What we'll learn in order
+How we accept and get user data in the context of a Flask app
+Send data in controllers using database sessions in a controller
+Manipulating models adding records in SQLAlchemy Models
+Direct how the view should update within the controller and views
+
+Methods of getting user input
+There are 3 methods of getting user data from a view to a controller. See the image below.
+URL query parameters - www.example.com/hello?my_key=my_value - key value pair at the end of url after ? | request.args.get('field1')
+    incase of objects it is better to use respose body
+Forms - html submit request.form.get('username') look for property name in html - old way
+JSON - modern way data type application/json then use request.data
+    data_string = request.data
+    data_dictionary = json.loads(data_string) parse string to json
+
+
+Form Takeaways
+forms take an action (name of the route) and method (route method) to submit data to our server.
+The name attribute on a form control element is the key used to retrieve data from request.get(<key>).
+All forms either define a submit button, or allow the user to hit ENTER on an input to submit the form.
+<form action="/foo1" method="post">
+   <label for="bar0">Bar</label>
+  <input type="text" value="foo2" id="bar1" name="bar2" class="bar3">
+  <input type="submit" value="Submit" />
+</form>
+For the form the content-Type : application/x-www-form-urlencoded and Request Body: field1=value&field2=value2
+GET max is max 2048 characters
+
+Using AJAX - asynchronusly
+Method 1 - XMLHttpRequest
+Method 2 - Fetch object more modern
+all libriries use eithr of the 2 method
+
+Method1
+var xhttp = new XMLHttpRequest();
+description = document.getElementById("description").value;
+xhttp.open("GET", "/todos/create?description=" + description);
+xhttp.send();
+
+//This gets called with diffrent state and status
+xhttp.onreadystatechange = function() {
+    //Make sure that state 4 operations completed on server and 200 is succcessful
+    if (this.readyState === 4 && this.status === 200) { 
+      // on successful response
+      console.log(xhttp.responseText);
+    }
+};
+
+Method 2
+fetch is another window object that lets you send HTTP requests
+fetch(<url-route>, <object of request parameters>)
+fetch('/my/request', {
+  method: 'POST',
+  body: JSON.stringify({
+    'description': 'some description here'
+  }),
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+
+
+JSON.stringify() - JS convert json object to string
+json.loads - Python convert string to json object
+request.get_json() -> gets json get_json()['property']
+jsonify return json data to client
+
+
+#Successful handlling errors in controller
+if you close connection and auto commit will be fired so we must handle rollback on exceptions
+
+
+ import sys
+
+ try:
+   todo = Todo(description=description)
+   db.session.add(todo)
+   db.session.commit()
+ except:
+   db.session.rollback()
+   error=True
+   print(sys.exc_info())
+ finally:
+   db.session.close()
+
+   ========================= MIGRATION ===============
+changing schema after creating it. This is data migration and schema migration

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to ToDo</title>
+    <style>
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <form action="/todos/create" method="POST">
+        <div>
+            <label for="description">Whats on your mind?</label>
+            <input type="text" id="description" name="description">
+        </div>
+        <div>
+            <input type="submit" id="submit" value="Add a New Todo!">
+        </div>
+    </form>
+    <form id="form">
+        <input type="text" name="description" id="desc" placeholder="Descrtiption">
+        <input type="submit" name="Submit" id="sub">
+    </form>
+    <div class="hidden" id='error'>Error</div>
+    <ul id="todos">
+        {% for d in data %}
+        <li>{{d.description}}</li>
+        {% endfor %}
+    </ul>
+    <script>
+        document.getElementById('form').onsubmit = function(e){
+            e.preventDefault();
+            fetch('/todos/createAjax',{
+                method:'POST',
+                body:JSON.stringify({'description':document.getElementById('desc').value}),
+                headers:{
+                    'Content-Type':'application/json'
+                }
+            })
+            .then(function(response){
+                return response.json();
+            })
+            .then(function(jsonResponse){
+                const listItem = document.createElement('LI');
+                listItem.innerHTML = jsonResponse['description'];
+                document.getElementById('todos').appendChild(listItem);
+                document.getElementById('error').className = 'hidden';
+            })
+            .catch(function(ee){
+                document.getElementById('error').className = '';
+            });
+        }
+    </script>
+</body>
+</html>
