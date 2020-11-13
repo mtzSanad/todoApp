@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 import sys
+
 
 app = Flask(__name__)
 #db uri
@@ -11,7 +13,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # db = SQLAlchemy(app,session_options={"expire_on_commit":False})
 
-#connecting to db
+#Linking migrate with application and db
+migrate = Migrate(app,db)
 
 
 #Models
@@ -19,12 +22,14 @@ class Todo(db.Model):
     __tablename__ = 'todos'
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(),nullable=False)
+    completed = db.Column(db.Boolean,nullable=False,default=False)
 
     def __repr__(self):
         return f'<TODO ID:{self.id} Description:{self.description}>'
 
 #Tables creation if not exists
-db.create_all()
+#Table creation will be handled from Flask Migrate
+#db.create_all()
 
 @app.route('/')
 def index():
