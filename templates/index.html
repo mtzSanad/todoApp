@@ -8,29 +8,89 @@
         .hidden {
             display: none;
         }
+        ul {
+            list-style: none;
+            padding: 0px;
+            margin: 0px;
+            width:300px;
+        }
+        li{
+            clear: both;
+        }
+        li button{
+            -webkit-appearance: none;
+            border: none;
+            outline: none;
+            color: red;
+            float: right;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .list-wrapper,.todos-wrapper{
+            display: inline-block;
+            vertical-align: top;
+        }
     </style>
 </head>
 <body>
-    <form action="/todos/create" method="POST">
-        <div>
-            <label for="description">Whats on your mind?</label>
-            <input type="text" id="description" name="description">
-        </div>
-        <div>
-            <input type="submit" id="submit" value="Add a New Todo!">
-        </div>
-    </form>
-    <form id="form">
-        <input type="text" name="description" id="desc" placeholder="Descrtiption">
-        <input type="submit" name="Submit" id="sub">
-    </form>
-    <div class="hidden" id='error'>Error</div>
-    <ul id="todos">
-        {% for d in data %}
-        <li>{{d.description}}</li>
-        {% endfor %}
-    </ul>
+    <div class="list-wrapper">
+        <ul>
+            {% for list in todoLists %}
+            <li><a href="/list/{{list.id}}">{{list.name}}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="todos-wrapper">
+        <form action="/todos/create" method="POST">
+            <div>
+                <label for="description">Whats on your mind?</label>
+                <input type="text" id="description" name="description">
+            </div>
+            <div>
+                <input type="submit" id="submit" value="Add a New Todo!">
+            </div>
+        </form>
+        <form id="form">
+            <input type="text" name="description" id="desc" placeholder="Descrtiption">
+            <input type="submit" name="Submit" id="sub">
+        </form>
+        <div class="hidden" id='error'>Error</div>
+        <ul id="todos">
+            {% for d in data %}
+            <li> 
+                <input class="complete-cb" data-id="{{d.id}}" type="checkbox" {% if d.completed %} checked {% endif %}> 
+                {{d.description}}
+                <button class="delete-btn" data-id="{{d.id}}">&cross;</button>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
     <script>
+        const deleteBtns = document.querySelectorAll('.delete-btn');
+        for (let i = 0; i < deleteBtns.length; i++) {
+            const btn = deleteBtns[i];
+            btn.onclick = function(e) {
+            const todoId = e.target.dataset['id'];
+            fetch('/todos/' + todoId, {
+                method: 'DELETE'
+            });
+            }
+        }
+
+        checkboxes = document.querySelectorAll('.complete-cb');
+        for (var i=0; i < checkboxes.length; i++){
+            let checkbox = checkboxes[i];
+            checkbox.onchange = function(e){
+                let todoId = e.target.dataset["id"];
+                fetch('/todos/'+ todoId +'/update-completed',{
+                    method:'POST',
+                    body: JSON.stringify({'completed':e.target.checked}),
+                    headers:{
+                        'Content-Type': 'application/json'
+                    }
+                })
+            }
+        }
         document.getElementById('form').onsubmit = function(e){
             e.preventDefault();
             fetch('/todos/createAjax',{

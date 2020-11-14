@@ -158,3 +158,105 @@ Run the migration, aka “upgrade” the database schema by a “version”
 It’s always helpful to read the docs!
 https://alembic.sqlalchemy.org/en/latest/
 https://flask-migrate.readthedocs.io/en/latest/
+
+========================== updating model
+
+user = User.query.get(some_id)
+user.name = 'Some new name'
+db.session.commit()
+
+todo = Todo.query.get(todo_id) 
+db.session.delete(todo) # or...
+Todo.query.filter_by(id=todo_id).delete()
+db.session.commit()
+
+===================RELATIONSHIPS
+
+http://www.sql-join.com/sql-join-types
+https://www.geeksforgeeks.org/sql-join-set-1-inner-left-right-and-full-joins/
+
+SQLAlchemy configures the settings between model relationships once, and generates JOIN statements for us whenever we need them.
+db.relationship is an interface offered in SQLAlchemy to provide and configure a mapped relationship between two models.
+db.relationship is defined on the parent model, and it sets:
+the name of its children (e.g. children), for example parent1.children
+the name of a parent on a child using the backref, for example child1.my_amazing_parent
+
+https://flask-sqlalchemy.palletsprojects.com/en/2.x/quickstart/#simple-relationships
+https://docs.sqlalchemy.org/en/14/orm/relationship_api.html#sqlalchemy.orm.relationship
+
+When calling child1.some_parent, SQLAlchemy determines when we load the parent from the database.
+Why is it important to care about when we load parents?
+Joins are expensive.
+We should avoid having the user idling. Delays more than 150ms are noticeable, so milliseconds of performance matter!
+We should make sure the joins happen during a time and place in the UX that doesn't negatively impact the experience too much.
+
+Lazy loading
+Load needed joined data only as needed. Default in SQLAlchemy.
+
+Pro: no initial wait time. Load only what you need.
+Con: produces a join SQL call every time there is a request for a joined asset. Bad if you do this a lot.
+Eager loading
+Load all needed joined data objects, all at once.
+
+Pro: reduces further queries to the database. Subsequent SQL calls read existing data
+Con: loading the joined table has a long upfront initial load time.
+lazy=True (lazy loading) is the default option in db.relationship:
+
+children = db.relationship('ChildModel', backref='some_parent', lazy=True)
+
+https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html
+https://docs.sqlalchemy.org/en/13/orm/relationship_api.html#sqlalchemy.orm.relationship
+
+db.relationship
+Allows SQLAlchemy to identity relationships between models
+Links relationships with backrefs (child1.some_parent)
+Configures relationship dynamics between parents and children, including options like lazy, collection_class, and cascade
+
+db.relationship does not set up foreign key constraints for you. We need to add a column, some_parent_id, on the child model that has a foreign key constraint
+Whereas we set db.relationship on the parent model, we set the foreign key constraint on the child model.
+A foreign key constraint prefers referential integrity from one table to another, by ensuring that the foreign key column always maps a primary key in the foreign table.
+
+driver_id REFERENCE drivers(id) = db.ForeignKey
+Option in db.column to specify a foreign key constraint, referring to the primary key of the other table / model
+Gets defined on the Child model
+https://docs.sqlalchemy.org/en/14/core/constraints.html
+https://database.guide/the-3-types-of-relationships-in-database-design/
+
+Modified our Todo model to (temporarily) allow null values in list_id:
+list_id = db.Column(db.Integer, db.ForeignKey('todolists.id'), nullable=True)
+Ran the migration, allowing list_id to be null
+Then using psql (or any other Postgres client),
+
+Populated our database with a default list ("Uncategorized") to add all currently existing Todo items to
+Associated existing to-do items with the "Uncategorized" list with ID 1, setting todo.list_id = 1. We could have also done this in a migration rather than using psql; either works.
+Set nullable=False on the list_id column
+Ran flask db migrate to generate a migration file for updating the nullability constraint
+Ran flask db upgrade to apply the migration
+
+Aside
+SQL commands can be written in any case (update, UPDATE, uPDaTe) and they will still execute.
+
+Important
+We always want to use migrations in order to update the data schema.
+We can establish maintenance windows during times when the app isn't well used and manipulate production data then, in order to prepare the data before a schema migration, and change it after a schema migration.
+
+In one-to-many and one-to-one, the foreign key is established on the child model.
+In many-to-many, a special association table exists to join the two tables together, storing two foreign keys that link to the two foreign tables that have a relationship with each other.
+
+Define an association table using Table from SQLAlchemy
+Set the multiple foreign keys in the association table
+Map the association table to a parent model using the option secondary in db.relationship
+order_items = db.Table('order_items',
+    db.Column('order_id', db.Integer, db.ForeignKey('order.id'), primary_key=True),
+    db.Column('product_id', db.Integer, db.ForeignKey('product.id'), primary_key=True)
+)
+
+class Order(db.Model):
+  id = db.Column(db.Integer, primary_key=True)
+  status = db.Column(db.String(), nullable=False)
+  products = db.relationship('Product', secondary=order_items,
+      backref=db.backref('orders', lazy=True))
+
+class Product(db.Model):
+  id = db.Column(db.Integer, primary_key=True)
+  name = db.Column(db.String(), nullable=False)
